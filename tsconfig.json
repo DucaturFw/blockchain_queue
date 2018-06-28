@@ -20,7 +20,7 @@
     "sourceMap": true,
     "strict": true,
     "strictNullChecks": true,
-    "noUnusedLocals": true,
+    "noUnusedLocals": false,
     "noUnusedParameters": true,
   },
   "exclude": [
