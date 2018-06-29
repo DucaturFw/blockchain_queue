@@ -1,5 +1,13 @@
-if [ -e last.pid ]
+if [ -e last_eth.pid ]
 then
-    kill $(cat last.pid)
-    rm last.pid
+    kill $(cat last_eth.pid)
+    rm last_eth.pid
+    echo "killed ETH"
+fi
+
+if [ -e last_eos.pid ]
+then
+    kill $(cat last_eos.pid)
+    rm last_eos.pid
+    echo "killed EOS"
 fi
