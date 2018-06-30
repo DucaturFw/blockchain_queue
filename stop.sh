@@ -1,20 +1,20 @@
 if [ -e last_eth.pid ]
 then
-    kill $(cat last_eth.pid)
+    pstree -p $(cat last_eth.pid) | grep -o '([0-9]\+)' | grep -o '[0-9]\+' | xargs kill
     rm last_eth.pid
     echo "killed ETH"
 fi
 
 if [ -e last_eos.pid ]
 then
-    kill $(cat last_eos.pid)
+    pstree -p $(cat last_eos.pid) | grep -o '([0-9]\+)' | grep -o '[0-9]\+' | xargs kill
     rm last_eos.pid
     echo "killed EOS"
 fi
 
 if [ -e last_api.pid ]
 then
-    kill $(cat last_api.pid)
+    pstree -p $(cat last_api.pid) | grep -o '([0-9]\+)' | grep -o '[0-9]\+' | xargs kill
     rm last_api.pid
     echo "killed api"
 fi
