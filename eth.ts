@@ -35,6 +35,7 @@ const main = async () => {
       .table('contractCalls')
       .orderBy({ index: 'chronological' })
       .nth(-1)('blockNumber')
+      .default(0)
       .run(conn)
 
     await ethListen(lastBlock)(insertIntoDb(conn), console.log)
