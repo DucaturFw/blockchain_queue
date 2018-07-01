@@ -45,28 +45,90 @@ router.get('/api/v1/holders/eos', async ctx => {
   ctx.body = data
 })
 
+// ETH
+
+interface IETHEventsGrouped {
+  group: 'Transfer' | 'Mint' | 'Burn',
+  reduction: {
+    returnValues: any
+  }[]
+}
+
+interface IETHEventsGroupedBurn extends IETHEventsGrouped {
+  group: 'Burn',
+  reduction: {
+    returnValues: {
+      0: string,
+      1: string,
+      burner: string,
+      value: string
+    }
+  }[]
+}
+
+interface IETHEventsGroupedMint extends IETHEventsGrouped {
+  group: 'Mint',
+  reduction: {
+    returnValues: {
+      amount: string,
+      to: string
+    }
+  }[]
+}
+
+interface IETHEventsGroupedTransfer extends IETHEventsGrouped {
+  group: 'Transfer',
+  reduction: {
+    returnValues: {
+      0: string,
+      1: string,
+      2: string,
+      from: string,
+      to: string,
+      value: string
+    }
+  }[]
+}
+
+type GetReductionValues = (a: IETHEventsGrouped) => IETHEventsGrouped['reduction'][0]['returnValues'][]
+const getReductionValues: GetReductionValues = o(<any>map(prop<string>('returnValues')), prop('reduction'))
+
+type FindMintGroup = (a: IETHEventsGrouped[]) => IETHEventsGroupedMint
+const findMintGroup: FindMintGroup = <any>find(propEq('group', 'Mint'))
+
+type FindBurnGroup = (a: IETHEventsGrouped[]) => IETHEventsGroupedBurn
+const findBurnGroup: FindBurnGroup = <any>find(propEq('group', 'Burn'))
+
+type FindTransferGroup = (a: IETHEventsGrouped[]) => IETHEventsGroupedTransfer
+const findTransferGroup: FindTransferGroup = <any>find(propEq('group', 'Transfer'))
+
+type GroupByTo = (a: IETHEventsGroupedMint['reduction'][0]['returnValues'][]) => { [to: string]: any[] }
+const groupByTo: GroupByTo = groupBy(prop<string>('to'))
+
+type GroupByFrom = (a: IETHEventsGroupedTransfer['reduction'][0]['returnValues'][]) => { [from: string]: { value: string }[] }
+const groupByFrom: GroupByFrom = groupBy(prop<string>('from'))
+
+type GroupByBurner = (a: IETHEventsGroupedBurn['reduction'][0]['returnValues'][]) => { [burner: string]: { value: string }[] }
+const groupByBurner: GroupByBurner = groupBy(prop<string>('burner'))
+
+type SumOfAmounts = (a: { [to: string]: { amount: string }[] }) => { [to: string]: number }
+const sumOfAmounts: SumOfAmounts = <any>map(o(<any>sum, map(prop<string>('amount'))))
+
+type SumOfValues = (a: { [to: string]: { value: string }[] }) => { [to: string]: number }
+const sumOfValues: SumOfValues = <any>map(o(<any>sum, map(prop<string>('value'))))
+
 const getETHAmountsOfHolders = r.db('ethereum')
   .table('contractCalls')
   .filter((v: any) => v('event').match('Transfer|Mint|Burn'))
   .pluck('event', 'returnValues')
   .group('event')
 
-const getReductionValues = compose(map(<any>prop('returnValues')), <any>prop('reduction'))
-const findMintGroup = compose(getReductionValues, find(propEq('group', 'Mint')))
-const findBurnGroup = compose(getReductionValues, find(propEq('group', 'Burn')))
-const findTransferGroup = compose(getReductionValues, find(propEq('group', 'Transfer')))
-const groupByTo = <any>groupBy(<any>prop('to'))
-const groupByFrom = <any>groupBy(<any>prop('from'))
-const groupByBurner = <any>groupBy(<any>prop('burner'))
-const sumOfAmounts = map(o(<any>sum, map(<any>prop('amount'))))
-const sumOfValues = map(o(<any>sum, map(<any>prop('value'))))
-
 router.get('/api/v1/holders/eth', async ctx => {
-  const res = await getETHAmountsOfHolders.run(ctx.conn)
-  const minted = compose(sumOfAmounts, groupByTo, findMintGroup)(res)
-  const burned = compose(sumOfValues, groupByBurner, findBurnGroup)(res)
-  const transferedFrom = compose(sumOfValues, groupByFrom, findTransferGroup)(res)
-  const transferedTo = compose(sumOfValues, groupByTo, findTransferGroup)(res)
+  const res: IETHEventsGrouped[] = await getETHAmountsOfHolders.run(ctx.conn)
+  const minted = compose(sumOfAmounts, groupByTo, getReductionValues, findMintGroup)(res)
+  const burned = compose(sumOfValues, groupByBurner, getReductionValues, findBurnGroup)(res)
+  const transferedFrom = compose(sumOfValues, groupByFrom, getReductionValues, findTransferGroup)(res)
+  const transferedTo = compose(sumOfValues, groupByTo, getReductionValues, findTransferGroup)(res)
 
   const result: { [key: string]: number } = mergeWith(add,
     transferedTo,
@@ -96,4 +158,3 @@ app
   .use(router.allowedMethods())
 
 app.listen(3011)
-console.log('ready')
