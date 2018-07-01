@@ -1,4 +1,4 @@
-import { compose, map, find, o, propEq, prop, groupBy, sum, mergeWith, subtract, add, divide } from 'ramda'
+import { compose, map, find, o, propEq, prop, groupBy, sum, mergeWith, subtract, add, divide, applySpec, converge } from 'ramda'
 import Koa from 'koa'
 import Router from 'koa-router'
 import json from 'koa-json'
@@ -117,6 +117,16 @@ const sumOfAmounts: SumOfAmounts = <any>map(o(<any>sum, map(prop<string>('amount
 type SumOfValues = (a: { [to: string]: { value: string }[] }) => { [to: string]: number }
 const sumOfValues: SumOfValues = <any>map(o(<any>sum, map(prop<string>('value'))))
 
+const getMinted = compose(sumOfAmounts, groupByTo, getReductionValues, findMintGroup)
+const getBurned = compose(sumOfValues, groupByBurner, getReductionValues, findBurnGroup)
+const getTransferedTo = compose(sumOfValues, groupByTo, getReductionValues, findTransferGroup)
+const getTransferedFrom = compose(sumOfValues, groupByFrom, getReductionValues, findTransferGroup)
+const getProperties = applySpec({ mint: getMinted, burn: getBurned, transTo: getTransferedTo, transFrom: getTransferedFrom })
+const mergeEntities = converge(mergeWith(add), [
+  converge(mergeWith(subtract), [ prop('mint'), prop('burn') ]),
+  converge(mergeWith(subtract), [ prop('transTo'), prop('transFrom')  ]),
+])
+
 const getETHAmountsOfHolders = r.db('ethereum')
   .table('contractCalls')
   .filter((v: any) => v('event').match('Transfer|Mint|Burn'))
@@ -125,18 +135,7 @@ const getETHAmountsOfHolders = r.db('ethereum')
 
 router.get('/api/v1/holders/eth', async ctx => {
   const res: IETHEventsGrouped[] = await getETHAmountsOfHolders.run(ctx.conn)
-  const minted = compose(sumOfAmounts, groupByTo, getReductionValues, findMintGroup)(res)
-  const burned = compose(sumOfValues, groupByBurner, getReductionValues, findBurnGroup)(res)
-  const transferedFrom = compose(sumOfValues, groupByFrom, getReductionValues, findTransferGroup)(res)
-  const transferedTo = compose(sumOfValues, groupByTo, getReductionValues, findTransferGroup)(res)
-
-  const result: { [key: string]: number } = mergeWith(add,
-    transferedTo,
-    mergeWith(subtract,
-      mergeWith(subtract, minted, burned),
-      transferedFrom
-    )
-  )
+  const result: { [key: string]: number } = o(mergeEntities, getProperties, res)
 
   const data = {
     name: 'ETH',
