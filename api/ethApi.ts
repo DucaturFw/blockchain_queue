@@ -1,6 +1,5 @@
-import { compose, map, find, o, propEq, prop, groupBy, sum, mergeWith, subtract, add, divide, applySpec, converge } from 'ramda'
-import { IRouterContext } from 'koa-router'
-// import r from 'rethinkdb'
+import { compose, map, find, o, propEq, prop, groupBy, sum, mergeWith, subtract, add, divide, applySpec, converge, values } from 'ramda'
+import { Connection } from 'rethinkdb'
 
 const r = require('rethinkdb')
 
@@ -91,18 +90,17 @@ const getETHAmountsOfHolders = r.db('ethereum')
   .pluck('event', 'returnValues')
   .group('event')
 
-export default async (ctx: IRouterContext) => {
-  const res: IETHEventsGrouped[] = await getETHAmountsOfHolders.run(ctx.conn)
-  const result: { [key: string]: number } = o(mergeEntities, getProperties, res)
+export default async (ctx: any) => {
+  const res: IETHEventsGrouped[] = await getETHAmountsOfHolders.run(ctx.conn as Connection)
+  const balances: { [key: string]: number } = o(mergeEntities, getProperties, res)
 
   const data = {
     name: 'ETH',
-    stake: 1,
-    tokens: 7e9,
-    holders: Object.keys(result).map((k: any) => ({
+    tokens: o(sum, values, balances),
+    holders: Object.keys(balances).map((k: string) => ({
       address: k,
-      tokens: result[k],
-      stake: divide(result[k], 7e9)
+      tokens: balances[k],
+      stake: divide(balances[k], 7e9)
     }))
   }
 

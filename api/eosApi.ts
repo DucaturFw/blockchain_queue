@@ -29,8 +29,7 @@ export default async (ctx: any) => {
 
   const data = {
     name: 'EOS',
-    stake: 1,
-    tokens: 7e9,
+    tokens: o(sum, values, balances),
     holders: mapToHoldersResult((v) => ({
       address: nth(0, v),
       tokens: nth(1, v),
