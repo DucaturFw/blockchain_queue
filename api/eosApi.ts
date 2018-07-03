@@ -1,5 +1,5 @@
-import { converge, mergeWith, subtract, o, map, sum, prop, groupBy, zip, keys, values, nth, add, divide, negate } from 'ramda'
-import { Connection } from 'rethinkdb';
+import { converge, mergeWith, o, map, sum, prop, groupBy, zip, keys, values, nth, add, divide, negate } from 'ramda'
+import { Connection } from 'rethinkdb'
 
 const r = require('rethinkdb')
 
@@ -23,9 +23,7 @@ const mapToHoldersResult = (mapFn: (v: any[]) => object) =>
 
 export default async (ctx: any) => {
   const res = await getTransactions.run(ctx.conn as Connection)
-  console.log({ res })
   const balances = getBalances(res)
-  console.log({ balances })
 
   const data = {
     name: 'EOS',
