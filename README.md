@@ -14,5 +14,5 @@ r.db('ethereum').tableCreate('contractCalls');
 r.db('ethereum').table('contractCalls').indexCreate('chronological', [r.row('blockNumber'), r.row('logIndex')]);
 
 r.dbCreate('eos');
-r.db('eos').tableCreate('contractCalls', { primaryKey: 'global_action_seq' });
+r.db('eos').tableCreate('contractCalls');
 ```
