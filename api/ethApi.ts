@@ -1,4 +1,8 @@
-import { compose, map, find, o, propEq, prop, groupBy, sum, mergeWith, subtract, add, divide, applySpec, converge, values } from 'ramda'
+import {
+  compose, map, find, o, propEq, prop, groupBy, sum, mergeWith, subtract,
+  add, divide, applySpec, converge, values, pipe, nth, filter, lt, toPairs
+} from 'ramda'
+
 import { Connection } from 'rethinkdb'
 
 const r = require('rethinkdb')
@@ -73,6 +77,8 @@ const sumOfAmounts: SumOfAmounts = <any>map(o(<any>sum, map(prop<string>('amount
 type SumOfValues = (a: { [to: string]: { value: string }[] }) => { [to: string]: number }
 const sumOfValues: SumOfValues = <any>map(o(<any>sum, map(prop<string>('value'))))
 
+const prepareBalances = o(filter(o(lt(0), nth(1))), toPairs)
+
 const getMinted = compose(sumOfAmounts, groupByTo, getReductionValues, findMintGroup)
 const getBurned = compose(sumOfValues, groupByBurner, getReductionValues, findBurnGroup)
 const getTransferedTo = compose(sumOfValues, groupByTo, getReductionValues, findTransferGroup)
@@ -93,15 +99,16 @@ export const getTransactions = r.db('ethereum')
 export default async (ctx: any) => {
   const res: IETHEventsGrouped[] = await getTransactions.run(ctx.conn as Connection)
   const balances: { [key: string]: number } = getBalances(res)
+  const balancesSum = o(sum, values, balances)
 
   const data = {
     name: 'ETH',
-    tokens: o(sum, values, balances),
-    holders: Object.keys(balances).map((k: string) => ({
+    tokens: divide(balancesSum, 1e18),
+    holders: pipe(prepareBalances, map(([ k, v ]) => ({
       address: k,
-      tokens: balances[k],
-      stake: divide(balances[k], 7e9)
-    }))
+      tokens: divide(v, 1e18),
+      stake: divide(v, balancesSum)
+    })))(balances)
   }
 
   ctx.body = data
