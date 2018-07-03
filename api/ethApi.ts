@@ -1,51 +1,8 @@
 import { compose, map, find, o, propEq, prop, groupBy, sum, mergeWith, subtract, add, divide, applySpec, converge } from 'ramda'
-import Koa from 'koa'
-import Router from 'koa-router'
-import json from 'koa-json'
-import { Connection } from 'rethinkdb'
+import { IRouterContext } from 'koa-router'
+// import r from 'rethinkdb'
+
 const r = require('rethinkdb')
-
-declare module 'koa' {
-  interface BaseContext {
-    conn(): Connection
-  }
-}
-
-const app = new Koa()
-const router = new Router()
-
-app.use(async (_, next) => {
-  app.context.conn = await r.connect({ host: 'localhost', port: 28015 })
-  await next()
-})
-
-const getEOSAmountsOfHolders = r.db('eos')
-  .table('contractCalls')
-  .map((v: any) => v.do({
-    q: v('action_trace')('act')('data')('quantity').split(' ').nth(0),
-    n: v('action_trace')('act')('data')('quantity').split(' ').nth(1),
-    t: v('action_trace')('act')('data')('to')
-  }))
-  .group('t', 'n')
-  .sum((v: any) => v('q').coerceTo('NUMBER'))
-  .do((v: any) => ({ tokens: v, stake: r.expr(v).div(7e9) }))
-
-router.get('/api/v1/holders/eos', async ctx => {
-  const res = await getEOSAmountsOfHolders.run(ctx.conn)
-  const data = {
-    name: 'EOS',
-    stake: 1,
-    tokens: 7e9,
-    holders: res.map((v: any) => ({
-      address: v.group[0],
-      tokens: v.reduction.tokens,
-      stake: v.reduction.stake
-    }))
-  }
-  ctx.body = data
-})
-
-// ETH
 
 interface IETHEventsGrouped {
   group: 'Transfer' | 'Mint' | 'Burn',
@@ -127,13 +84,14 @@ const mergeEntities = converge(mergeWith(add), [
   converge(mergeWith(subtract), [ prop('transTo'), prop('transFrom')  ]),
 ])
 
+
 const getETHAmountsOfHolders = r.db('ethereum')
   .table('contractCalls')
   .filter((v: any) => v('event').match('Transfer|Mint|Burn'))
   .pluck('event', 'returnValues')
   .group('event')
 
-router.get('/api/v1/holders/eth', async ctx => {
+export default async (ctx: IRouterContext) => {
   const res: IETHEventsGrouped[] = await getETHAmountsOfHolders.run(ctx.conn)
   const result: { [key: string]: number } = o(mergeEntities, getProperties, res)
 
@@ -149,11 +107,4 @@ router.get('/api/v1/holders/eth', async ctx => {
   }
 
   ctx.body = data
-})
-
-app
-  .use(json())
-  .use(router.routes())
-  .use(router.allowedMethods())
-
-app.listen(3011)
+}
