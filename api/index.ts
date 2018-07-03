@@ -3,6 +3,7 @@ import Router from 'koa-router'
 import json from 'koa-json'
 import r, { Connection } from 'rethinkdb'
 
+import holdersApi from './holdersApi'
 import ethApi from './ethApi'
 import eosApi from './eosApi'
 
@@ -26,6 +27,7 @@ app.use(async (_, next) => {
   await next()
 })
 
+router.get('/api/v1/holders', holdersApi)
 router.get('/api/v1/holders/eos', eosApi)
 router.get('/api/v1/holders/eth', ethApi)
 

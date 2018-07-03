@@ -82,17 +82,17 @@ const mergeEntities = converge(mergeWith(add), [
   converge(mergeWith(subtract), [ prop('mint'), prop('burn') ]),
   converge(mergeWith(subtract), [ prop('transTo'), prop('transFrom')  ]),
 ])
+export const getBalances = o(mergeEntities, getProperties)
 
-
-const getETHAmountsOfHolders = r.db('ethereum')
+export const getTransactions = r.db('ethereum')
   .table('contractCalls')
   .filter((v: any) => v('event').match('Transfer|Mint|Burn'))
   .pluck('event', 'returnValues')
   .group('event')
 
 export default async (ctx: any) => {
-  const res: IETHEventsGrouped[] = await getETHAmountsOfHolders.run(ctx.conn as Connection)
-  const balances: { [key: string]: number } = o(mergeEntities, getProperties, res)
+  const res: IETHEventsGrouped[] = await getTransactions.run(ctx.conn as Connection)
+  const balances: { [key: string]: number } = getBalances(res)
 
   const data = {
     name: 'ETH',

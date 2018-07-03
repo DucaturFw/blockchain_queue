@@ -3,7 +3,7 @@ import { Connection } from 'rethinkdb';
 
 const r = require('rethinkdb')
 
-const getTransactions = r.db('eos')
+export const getTransactions = r.db('eos')
   .table('contractCalls')
   .map((v: any) =>
     v.do({
@@ -13,7 +13,7 @@ const getTransactions = r.db('eos')
     })
   ).orderBy('from')
 
-const getBalances = converge(mergeWith(add), [
+export const getBalances = converge(mergeWith(add), [
   o(map(o(sum, <(a: {}) => number[]>map(prop<string>('amount')))), groupBy(prop<string>('to'))),
   o(map(o(sum, <(a: {}) => number[]>map(o(negate, prop<string>('amount'))))), groupBy(prop<string>('from')))
 ])
