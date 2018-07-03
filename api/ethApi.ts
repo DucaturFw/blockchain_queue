@@ -1,6 +1,6 @@
 import {
-  compose, map, find, o, propEq, prop, groupBy, sum, mergeWith, subtract,
-  add, divide, applySpec, converge, values, pipe, nth, filter, lt, toPairs
+  compose, map, find, o, propEq, prop, groupBy, sum, mergeWith, subtract, flip,
+  add, divide, applySpec, converge, values, pipe, nth, filter, lt, toPairs, __
 } from 'ramda'
 
 import { Connection } from 'rethinkdb'
@@ -89,6 +89,7 @@ const mergeEntities = converge(mergeWith(add), [
   converge(mergeWith(subtract), [ prop('transTo'), prop('transFrom')  ]),
 ])
 export const getBalances = o(mergeEntities, getProperties)
+export const weiToDucat: (a: number) => number = divide(__, 1e18)
 
 export const getTransactions = r.db('ethereum')
   .table('contractCalls')
@@ -100,14 +101,15 @@ export default async (ctx: any) => {
   const res: IETHEventsGrouped[] = await getTransactions.run(ctx.conn as Connection)
   const balances: { [key: string]: number } = getBalances(res)
   const balancesSum = o(sum, values, balances)
+  const calcStake = divide(__, balancesSum)
 
   const data = {
     name: 'ETH',
-    tokens: divide(balancesSum, 1e18),
+    tokens: weiToDucat(balancesSum),
     holders: pipe(prepareBalances, map(([ k, v ]) => ({
       address: k,
-      tokens: divide(v, 1e18),
-      stake: divide(v, balancesSum)
+      tokens: weiToDucat(v),
+      stake: calcStake(v)
     })))(balances)
   }
 
