@@ -4,6 +4,7 @@ import Koa from 'koa'
 import Router from 'koa-router'
 import json from 'koa-json'
 import r from 'rethinkdb'
+import cors from '@koa/cors'
 
 import holdersApi from './holdersApi'
 import ethApi from './ethApi'
@@ -11,6 +12,8 @@ import eosApi from './eosApi'
 
 const app = new Koa()
 const router = new Router()
+
+app.use(cors())
 
 app.use(async (_, next) => {
   app.context.conn = await r.connect({ host: 'localhost', port: 28015 })
