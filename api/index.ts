@@ -1,23 +1,13 @@
+///<reference path="./types.d.ts"/>
+
 import Koa from 'koa'
 import Router from 'koa-router'
 import json from 'koa-json'
-import r, { Connection } from 'rethinkdb'
+import r from 'rethinkdb'
 
 import holdersApi from './holdersApi'
 import ethApi from './ethApi'
 import eosApi from './eosApi'
-
-declare module 'koa' {
-  interface BaseContext {
-    conn(): Connection
-  }
-}
-
-declare module 'koa-router' {
-  interface IRouterContext {
-    conn: Connection
-  }
-}
 
 const app = new Koa()
 const router = new Router()
@@ -25,6 +15,7 @@ const router = new Router()
 app.use(async (_, next) => {
   app.context.conn = await r.connect({ host: 'localhost', port: 28015 })
   await next()
+  app.context.conn.close()
 })
 
 router.get('/api/v1/holders', holdersApi)

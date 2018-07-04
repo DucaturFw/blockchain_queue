@@ -1,7 +1,6 @@
 import { converge, mergeWith, o, map, sum, prop, groupBy, zip, keys, values, nth, add, divide, negate } from 'ramda'
-import { Connection } from 'rethinkdb'
-
-const r = require('rethinkdb')
+import r from 'rethinkdb'
+import { IRouterContext } from 'koa-router'
 
 export const getTransactions = r.db('eos')
   .table('contractCalls')
@@ -21,8 +20,8 @@ export const getBalances = converge(mergeWith(add), [
 const mapToHoldersResult = (mapFn: (v: any[]) => object) =>
   o(map(mapFn), converge(zip, [ keys, values ]))
 
-export default async (ctx: any) => {
-  const res = await getTransactions.run(ctx.conn as Connection)
+export default async (ctx: IRouterContext) => {
+  const res = await getTransactions.run(ctx.conn)
   const balances = getBalances(res)
 
   const data = {

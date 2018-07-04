@@ -3,9 +3,8 @@ import {
   add, divide, applySpec, converge, values, pipe, nth, filter, lt, toPairs, __
 } from 'ramda'
 
-import { Connection } from 'rethinkdb'
-
-const r = require('rethinkdb')
+import r from 'rethinkdb'
+import { IRouterContext } from 'koa-router'
 
 interface IETHEventsGrouped {
   group: 'Transfer' | 'Mint' | 'Burn',
@@ -77,7 +76,8 @@ const sumOfAmounts: SumOfAmounts = <any>map(o(<any>sum, map(prop<string>('amount
 type SumOfValues = (a: { [to: string]: { value: string }[] }) => { [to: string]: number }
 const sumOfValues: SumOfValues = <any>map(o(<any>sum, map(prop<string>('value'))))
 
-const prepareBalances = o(filter(o(lt(0), nth(1))), toPairs)
+type PrepareBalances = (balancesObj: { [key: string]: number }) => [ string, number ][]
+const prepareBalances: PrepareBalances = <any>o(filter(o(lt(0), nth(1))), toPairs)
 
 const getMinted = compose(sumOfAmounts, groupByTo, getReductionValues, findMintGroup)
 const getBurned = compose(sumOfValues, groupByBurner, getReductionValues, findBurnGroup)
@@ -89,7 +89,7 @@ const mergeEntities = converge(mergeWith(add), [
   converge(mergeWith(subtract), [ prop('transTo'), prop('transFrom')  ]),
 ])
 export const getBalances = o(mergeEntities, getProperties)
-export const weiToDucat: (a: number) => number = divide(__, 1e18)
+export const weiToDucat = divide(__, 1e18)
 
 export const getTransactions = r.db('ethereum')
   .table('contractCalls')
@@ -97,8 +97,8 @@ export const getTransactions = r.db('ethereum')
   .pluck('event', 'returnValues')
   .group('event')
 
-export default async (ctx: any) => {
-  const res: IETHEventsGrouped[] = await getTransactions.run(ctx.conn as Connection)
+export default async (ctx: IRouterContext) => {
+  const res: IETHEventsGrouped[] = await getTransactions.run(ctx.conn)
   const balances: { [key: string]: number } = getBalances(res)
   const balancesSum = o(sum, values, balances)
   const calcStake = divide(__, balancesSum)

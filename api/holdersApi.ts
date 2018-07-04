@@ -1,8 +1,10 @@
-import { o, sum, values, compose } from 'ramda'
+import { o, sum, values } from 'ramda'
+import { IRouterContext } from 'koa-router'
+
 import { getTransactions as EthGetTransactions, getBalances as EthGetBalances, weiToDucat } from './ethApi'
 import { getTransactions as EosGetTransactions, getBalances as EosGetBalances } from './eosApi'
 
-export default async (ctx: any) => {
+export default async (ctx: IRouterContext) => {
   const [ ethRes, eosRes ] = await Promise.all([
     EthGetTransactions.run(ctx.conn),
     EosGetTransactions.run(ctx.conn)
