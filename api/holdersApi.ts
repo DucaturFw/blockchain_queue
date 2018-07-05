@@ -1,7 +1,7 @@
-import { o, sum, values } from 'ramda'
+import { o, sum, values, compose, filter, lt, map, nth, toPairs } from 'ramda'
 import { IRouterContext } from 'koa-router'
 
-import { getTransactions as EthGetTransactions, getBalances as EthGetBalances, weiToDucat } from './ethApi'
+import { getTransactions as EthGetTransactions, getBalances as EthGetBalances } from './ethApi'
 import { getTransactions as EosGetTransactions, getBalances as EosGetBalances } from './eosApi'
 
 export default async (ctx: IRouterContext) => {
@@ -13,7 +13,7 @@ export default async (ctx: IRouterContext) => {
   const eosBalances: { [key: string]: number } = EosGetBalances(eosRes)
 
   ctx.body = [
-    { name: 'ETH', tokens: o(weiToDucat, o(sum, values), ethBalances) },
+    { name: 'ETH', tokens: compose(<any>sum, filter(lt(0)), map(nth(1)), toPairs)(ethBalances) },
     { name: 'EOS', tokens: o(sum, values, eosBalances) },
   ]
 }

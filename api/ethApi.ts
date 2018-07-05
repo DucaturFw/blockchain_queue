@@ -1,115 +1,44 @@
-import {
-  compose, map, find, o, propEq, prop, groupBy, sum, mergeWith, subtract, flip,
-  add, divide, applySpec, converge, values, pipe, nth, filter, lt, toPairs, __
-} from 'ramda'
+///<reference path="./types.d.ts"/>
 
+import { map, o, sum, pipe, nth, filter, lt, toPairs } from 'ramda'
 import r from 'rethinkdb'
 import { IRouterContext } from 'koa-router'
-
-interface IETHEventsGrouped {
-  group: 'Transfer' | 'Mint' | 'Burn',
-  reduction: {
-    returnValues: any
-  }[]
-}
-
-interface IETHEventsGroupedBurn extends IETHEventsGrouped {
-  group: 'Burn',
-  reduction: {
-    returnValues: {
-      0: string,
-      1: string,
-      burner: string,
-      value: string
-    }
-  }[]
-}
-
-interface IETHEventsGroupedMint extends IETHEventsGrouped {
-  group: 'Mint',
-  reduction: {
-    returnValues: {
-      amount: string,
-      to: string
-    }
-  }[]
-}
-
-interface IETHEventsGroupedTransfer extends IETHEventsGrouped {
-  group: 'Transfer',
-  reduction: {
-    returnValues: {
-      0: string,
-      1: string,
-      2: string,
-      from: string,
-      to: string,
-      value: string
-    }
-  }[]
-}
-
-type GetReductionValues = (a: IETHEventsGrouped) => IETHEventsGrouped['reduction'][0]['returnValues'][]
-const getReductionValues: GetReductionValues = o(<any>map(prop<string>('returnValues')), prop('reduction'))
-
-type FindMintGroup = (a: IETHEventsGrouped[]) => IETHEventsGroupedMint
-const findMintGroup: FindMintGroup = <any>find(propEq('group', 'Mint'))
-
-type FindBurnGroup = (a: IETHEventsGrouped[]) => IETHEventsGroupedBurn
-const findBurnGroup: FindBurnGroup = <any>find(propEq('group', 'Burn'))
-
-type FindTransferGroup = (a: IETHEventsGrouped[]) => IETHEventsGroupedTransfer
-const findTransferGroup: FindTransferGroup = <any>find(propEq('group', 'Transfer'))
-
-type GroupByTo = (a: IETHEventsGroupedMint['reduction'][0]['returnValues'][]) => { [to: string]: any[] }
-const groupByTo: GroupByTo = groupBy(prop<string>('to'))
-
-type GroupByFrom = (a: IETHEventsGroupedTransfer['reduction'][0]['returnValues'][]) => { [from: string]: { value: string }[] }
-const groupByFrom: GroupByFrom = groupBy(prop<string>('from'))
-
-type GroupByBurner = (a: IETHEventsGroupedBurn['reduction'][0]['returnValues'][]) => { [burner: string]: { value: string }[] }
-const groupByBurner: GroupByBurner = groupBy(prop<string>('burner'))
-
-type SumOfAmounts = (a: { [to: string]: { amount: string }[] }) => { [to: string]: number }
-const sumOfAmounts: SumOfAmounts = <any>map(o(<any>sum, map(prop<string>('amount'))))
-
-type SumOfValues = (a: { [to: string]: { value: string }[] }) => { [to: string]: number }
-const sumOfValues: SumOfValues = <any>map(o(<any>sum, map(prop<string>('value'))))
 
 type PrepareBalances = (balancesObj: { [key: string]: number }) => [ string, number ][]
 const prepareBalances: PrepareBalances = <any>o(filter(o(lt(0), nth(1))), toPairs)
 
-const getMinted = compose(sumOfAmounts, groupByTo, getReductionValues, findMintGroup)
-const getBurned = compose(sumOfValues, groupByBurner, getReductionValues, findBurnGroup)
-const getTransferedTo = compose(sumOfValues, groupByTo, getReductionValues, findTransferGroup)
-const getTransferedFrom = compose(sumOfValues, groupByFrom, getReductionValues, findTransferGroup)
-const getProperties = applySpec({ mint: getMinted, burn: getBurned, transTo: getTransferedTo, transFrom: getTransferedFrom })
-const mergeEntities = converge(mergeWith(add), [
-  converge(mergeWith(subtract), [ prop('mint'), prop('burn') ]),
-  converge(mergeWith(subtract), [ prop('transTo'), prop('transFrom')  ]),
-])
-export const getBalances = o(mergeEntities, getProperties)
-export const weiToDucat = divide(__, 1e18)
+type SumOfValues = (a: [ any, number ][]) => number
+const sumOfValues: SumOfValues = <any>o(<any>sum, map(nth(1)))
 
 export const getTransactions = r.db('ethereum')
   .table('contractCalls')
-  .filter((v: any) => v('event').match('Transfer|Mint|Burn'))
-  .pluck('event', 'returnValues')
-  .group('event')
+  .filter({ event: 'Transfer' })
+  .map(v => v.do(<any>{
+    f: v('returnValues')('from'),
+    t: v('returnValues')('to'),
+    v: v('returnValues')('value').coerceTo('number').div(1e18)
+  }))
+  .orderBy('t')
+
+type ITransaction = { f: string, t: string, v: number }
+
+type GetBalances = (a: ITransaction[]) => { [address: string]: number }
+export const getBalances: GetBalances = res => res
+  .reduce((obj: { [address: string]: number }, { f, t, v }) =>
+    ({ ...obj, ...{ [f]: (obj[f] || 0) - v, [t]: (obj[t] || 0) + v } }), {})
 
 export default async (ctx: IRouterContext) => {
-  const res: IETHEventsGrouped[] = await getTransactions.run(ctx.conn)
-  const balances: { [key: string]: number } = getBalances(res)
-  const balancesSum = o(sum, values, balances)
-  const calcStake = divide(__, balancesSum)
+  const res: ITransaction[] = await getTransactions.run(ctx.conn)
+  const balances = getBalances(res)
+  const balancesSum: number = o(sumOfValues, prepareBalances)(balances)
 
   const data = {
     name: 'ETH',
-    tokens: weiToDucat(balancesSum),
+    tokens: balancesSum,
     holders: pipe(prepareBalances, map(([ k, v ]) => ({
       address: k,
-      tokens: weiToDucat(v),
-      stake: calcStake(v)
+      tokens: v,
+      stake: v / balancesSum
     })))(balances)
   }
 
