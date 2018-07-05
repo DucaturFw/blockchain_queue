@@ -58,7 +58,7 @@ const checkIteration = async (conn: Connection) => {
 
 const main = async () => {
   const conn = await r.connect({ host: 'localhost', port: 28015 })
-  setInterval(() => checkIteration(conn), 1000 * 60) // 1 minute
+  setInterval(() => checkIteration(conn), 1000 * 3)
   checkIteration(conn)
 }
 
