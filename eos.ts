@@ -7,7 +7,7 @@ const config = {
   httpEndpoint: 'http://193.93.219.219:8888',
   expireInSeconds: 60,
   broadcast: false,
-  sign: true,
+  sign: true
 }
 
 const eos = new Eos(config)
@@ -18,12 +18,12 @@ const getEosRows = async (pos = -1, offset = 0) => {
     const { rows } = await eos.getTableRows({
       code: 'duccntr',
       scope: 'duccntr',
-       table: 'exchanges',
-       json: 'true',
-       limit: 999,
-       lower_bound: pos,
-       upper_bound: offset
-      })
+      table: 'exchanges',
+      json: 'true',
+      limit: 999,
+      lower_bound: pos,
+      upper_bound: offset
+    })
     return rows
   } catch (error) {
     return { error }
@@ -32,14 +32,19 @@ const getEosRows = async (pos = -1, offset = 0) => {
 
 const insertIntoDb = (conn: Connection) => async (data: object) => {
   try {
-    const res = await r.db('eos').table('contractCalls').insert(data).run(conn)
+    const res = await r
+      .db('eos')
+      .table('contractCalls')
+      .insert(data)
+      .run(conn)
     if (res.errors) throw res.first_error
   } catch (err) {
     console.log({ err })
   }
 }
 
-const getLastIndex = r.db('eos')
+const getLastIndex = r
+  .db('eos')
   .table('contractCalls')
   .orderBy('id')
   .nth(-1)('id')
@@ -56,8 +61,39 @@ const checkIteration = async (conn: Connection) => {
   }
 }
 
+async function checkOrCreateDB(dbName: string, conn: Connection) {
+  const dbList = <string[]>await r.dbList().run(conn)
+  if (!dbList.filter(name => name === dbName).length) {
+    await r.dbCreate(dbName).run(conn)
+  }
+}
+
+async function checkOrCreateTable(
+  dbName: string,
+  tableName: string,
+  conn: Connection
+) {
+  const tableList = <string[]>await r
+    .db(dbName)
+    .tableList()
+    .run(conn)
+
+  if (!tableList.filter(name => name === tableName).length) {
+    await r
+      .db(dbName)
+      .tableCreate(tableName)
+      .run(conn)
+  }
+}
+
+async function checkSetup(conn: Connection) {
+  await checkOrCreateDB('eos', conn)
+  await checkOrCreateTable('eos', 'contractCalls', conn)
+}
+
 const main = async () => {
   const conn = await r.connect({ host: 'localhost', port: 28015 })
+  await checkSetup(conn)
   setInterval(() => checkIteration(conn), 1000 * 3)
   checkIteration(conn)
 }
