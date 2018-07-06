@@ -30,6 +30,7 @@
     "api": "yarn ts-node ./api",
     "eth": "yarn ts-node ./eth.ts",
     "eos": "yarn ts-node ./eos.ts",
+    "logs": "tail -fn50 log_*",
     "eth:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./eth.ts",
     "eos:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./eos.ts",
     "api:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./api"
