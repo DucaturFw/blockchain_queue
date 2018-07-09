@@ -50,6 +50,7 @@ const checkIteration = async (conn: Connection) => {
   try {
     const lastIndex = await getLastIndex.run(conn)
     const rows = await getEosRows(lastIndex, 999)
+    if (rows.error) throw rows.error.message
     await insertIntoDb(conn)(rows)
   } catch (err) {
     console.log({ err })
