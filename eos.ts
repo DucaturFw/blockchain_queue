@@ -1,3 +1,4 @@
+import { propIs, compose, all, equals, map, allPass, Variadic } from 'ramda'
 import r, { Connection } from 'rethinkdb'
 
 const Eos = require('eosjs')
@@ -46,11 +47,26 @@ const getLastIndex = r.db('eos')
   .default(-1)
   .add(1)
 
+const validate = (validators: Variadic<boolean>[]): (data: Object) => boolean =>
+  compose(<(booleans: any) => boolean>all(equals(true)), map(allPass(validators)))
+
+const rowsValidators = [
+  propIs(Number, 'id'),
+  propIs(String, 'amount'),
+  propIs(String, 'blockchain'),
+  propIs(String, 'from'),
+  propIs(String, 'to'),
+  propIs(String, 'txid')
+]
+
 const checkIteration = async (conn: Connection) => {
   try {
     const lastIndex = await getLastIndex.run(conn)
     const rows = await getEosRows(lastIndex, 999)
+
     if (rows.error) throw rows.error.message
+    if (!validate(rowsValidators)(rows)) throw Error('Data rows validation failed')
+
     await insertIntoDb(conn)(rows)
   } catch (err) {
     console.log({ err })
