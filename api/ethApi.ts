@@ -14,18 +14,18 @@ export const getTransactions = r.db('ethereum')
   .table('contractCalls')
   .filter({ event: 'Transfer' })
   .map(v => v.do(<any>{
-    f: v('returnValues')('from'),
-    t: v('returnValues')('to'),
-    v: v('returnValues')('value').coerceTo('number').div(1e18)
+    from: v('returnValues')('from'),
+    to: v('returnValues')('to'),
+    value: v('returnValues')('value').coerceTo('number').div(1e18)
   }))
   .orderBy('t')
 
-type ITransaction = { f: string, t: string, v: number }
+type ITransaction = { from: string, to: string, value: number }
 
 type GetBalances = (a: ITransaction[]) => { [address: string]: number }
-export const getBalances: GetBalances = res => res
-  .reduce((obj: { [address: string]: number }, { f, t, v }) =>
-    ({ ...obj, ...{ [f]: (obj[f] || 0) - v, [t]: (obj[t] || 0) + v } }), {})
+export const getBalances: GetBalances = res =>
+  res.reduce((obj: { [address: string]: number }, { from, to, value }) =>
+    ({ ...obj, ...{ [from]: (obj[from] || 0) - value, [to]: (obj[to] || 0) + value } }), {})
 
 export default async (ctx: IRouterContext) => {
   const res: ITransaction[] = await getTransactions.run(ctx.conn)

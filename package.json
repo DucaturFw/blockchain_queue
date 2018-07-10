@@ -27,12 +27,38 @@
     "web3": "^1.0.0-beta.34"
   },
   "scripts": {
+    "test": "jest",
     "api": "yarn ts-node ./api",
-    "eth": "yarn ts-node ./eth.ts",
+    "eth": "yarn ts-node ./eth",
     "eos": "yarn ts-node ./eos.ts",
     "logs": "tail -fn50 log_*",
-    "eth:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./eth.ts",
+    "eth:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./eth",
     "eos:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./eos.ts",
     "api:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./api"
+  },
+  "devDependencies": {
+    "@types/jest": "^23.1.5",
+    "debug": "^3.1.0",
+    "jest": "^23.4.0",
+    "rethinkdb-mock": "^0.6.0",
+    "ts-jest": "^23.0.0"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "json",
+      "node"
+    ],
+    "transform": {
+      "^.+\\.(ts|tsx)$": "ts-jest"
+    },
+    "globals": {
+      "ts-jest": {
+        "tsConfigFile": "tsconfig.json"
+      }
+    },
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$"
   }
 }
