@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 
 import main from './main'
 
-const dbConfig = { host: 'localhost', port: 28015, db: 'eos' }
+const dbConfig = { host: 'localhost', port: 28015, db: 'neo' }
 
 const init = async () => {
   try {

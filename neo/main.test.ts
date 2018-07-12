@@ -6,7 +6,7 @@ const resolveJson = (json: object) => ({
   json: () => Promise.resolve(json)
 })
 
-describe('EOS blockchain grabber', () => {
+describe('NEO blockchain grabber', () => {
   it('should insert transactions from neo-scan to rethinkdb correctly', async () => {
     const db = rethinkdb({ name: 'eos' })
     db.init({ holders: [] })
