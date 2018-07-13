@@ -1,29 +1,23 @@
-///<reference path="./types.d.ts"/>
-
 import Koa from 'koa'
 import Router from 'koa-router'
 import json from 'koa-json'
-import r from 'rethinkdb'
 import cors from '@koa/cors'
 
-import holdersApi from './holdersApi'
-import ethApi from './ethApi'
-import eosApi from './eosApi'
+import rethinkdb from './middlewares/rethinkdb'
+
+import holders from './routes/holders'
+import eth from './routes/eth'
+import eos from './routes/eos'
 
 const app = new Koa()
 const router = new Router()
 
 app.use(cors())
+app.use(rethinkdb)
 
-app.use(async (_, next) => {
-  app.context.conn = await r.connect({ host: 'localhost', port: 28015 })
-  await next()
-  app.context.conn.close()
-})
-
-router.get('/api/v1/holders', holdersApi)
-router.get('/api/v1/holders/eos', eosApi)
-router.get('/api/v1/holders/eth', ethApi)
+router.get('/api/v1/holders', holders)
+router.get('/api/v1/holders/eos', eos)
+router.get('/api/v1/holders/eth', eth)
 
 app
   .use(json())

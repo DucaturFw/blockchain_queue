@@ -2,13 +2,13 @@ import { Connection } from 'rethinkdb'
 
 declare module 'koa' {
   interface BaseContext {
-    conn: Connection
+    rethinkdb: Connection
   }
 }
 
 declare module 'koa-router' {
   interface IRouterContext {
-    conn: Connection
+    rethinkdb: Connection
   }
 }
 
@@ -16,4 +16,14 @@ declare module 'rethinkdb' {
   interface RStream {
     group: (a: string) => RStream<{}>
   }
+}
+
+export type IHolderBalances = {
+  name: string,
+  tokens: number,
+  holders: {
+    address: string,
+    tokens: number,
+    stake: number
+  }[]
 }
