@@ -9,10 +9,10 @@ yarn install
 
 ## RethinkDB setup
 ```js
-r.dbCreate('ethereum');
-r.db('ethereum').tableCreate('contractCalls');
-r.db('ethereum').table('contractCalls').indexCreate('chronological', [r.row('blockNumber'), r.row('logIndex')]);
+r.dbCreate('eth');
+r.db('eth').tableCreate('contractCalls');
+r.db('eth').table('contractCalls').indexCreate('chronological', [r.row('blockNumber'), r.row('logIndex')]);
 
 r.dbCreate('eos');
-r.db('eos').tableCreate('contractCalls');
+r.db('eos').tableCreate('holders');
 ```

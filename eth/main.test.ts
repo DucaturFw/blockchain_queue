@@ -20,9 +20,10 @@ describe('Ethereum blockchain grabber', () => {
 
     expect(ctr.events.allEvents).toHaveBeenCalledTimes(1)
     const cb = ctr.events.allEvents.mock.calls[0][1]
+
     await cb(null, { id: 4, blockNumber: 4 })
 
-    expect(db._tables.contractCalls.length).toBe(3)
+    expect(db._tables.contractCalls).toHaveLength(3)
     expect(db._tables.contractCalls[2]).toEqual({ id: 4, blockNumber: 4 })
   })
 })
