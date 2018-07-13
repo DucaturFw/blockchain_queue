@@ -27,6 +27,7 @@
     "ramda": "^0.25.0",
     "rethinkdb": "^2.3.3",
     "ts-node": "^7.0.0",
+    "tslint": "^5.10.0",
     "typescript": "^2.9.2",
     "web3": "^1.0.0-beta.34"
   },
@@ -34,9 +35,11 @@
     "test": "jest",
     "api": "yarn ts-node ./api",
     "eth": "yarn ts-node ./eth",
+    "neo": "yarn ts-node ./neo",
     "eos": "yarn ts-node ./eos.ts",
     "logs": "tail -fn50 log_*",
     "eth:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./eth",
+    "neo:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./neo",
     "eos:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./eos.ts",
     "api:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./api"
   },
