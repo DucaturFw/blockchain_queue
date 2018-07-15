@@ -12,6 +12,13 @@ then
     echo "killed EOS"
 fi
 
+if [ -e last_neo.pid ]
+then
+    pstree -p $(cat last_neo.pid) | grep -o '([0-9]\+)' | grep -o '[0-9]\+' | xargs kill
+    rm last_neo.pid
+    echo "killed NEO"
+fi
+
 if [ -e last_api.pid ]
 then
     pstree -p $(cat last_api.pid) | grep -o '([0-9]\+)' | grep -o '[0-9]\+' | xargs kill
