@@ -1,3 +1,4 @@
+/// <reference path="./types.d.ts" />
 import nodeFetch from 'node-fetch'
 import { propOr, zip } from 'ramda'
 import r, { Connection, WriteResult } from 'rethinkdb'
