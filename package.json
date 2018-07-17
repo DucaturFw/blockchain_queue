@@ -33,15 +33,16 @@
   },
   "scripts": {
     "test": "jest",
+    "lint": "tslint **/*.ts",
     "api": "yarn ts-node ./api",
     "eth": "yarn ts-node ./eth",
     "neo": "yarn ts-node ./neo",
     "eos": "yarn ts-node ./eos.ts",
     "logs": "tail -fn50 log_*",
-    "eth:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./eth",
-    "neo:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./neo",
-    "eos:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./eos.ts",
-    "api:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./api"
+    "eth:live": "tslint ./eth/**/*.ts && nodemon --exec ./node_modules/.bin/ts-node -- ./eth",
+    "neo:live": "tslint ./neo/**/*.ts && nodemon --exec ./node_modules/.bin/ts-node -- ./neo",
+    "eos:live": "tslint ./eos/**/*.ts && nodemon --exec ./node_modules/.bin/ts-node -- ./eos.ts",
+    "api:live": "tslint ./api/**/*.ts && nodemon --exec ./node_modules/.bin/ts-node -- ./api"
   },
   "devDependencies": {
     "@types/jest": "^23.1.5",
