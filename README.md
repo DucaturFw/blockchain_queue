@@ -17,4 +17,7 @@ r.db('eth').table('contractCalls').indexCreate('chronological', [r.row('blockNum
 
 r.dbCreate('eos');
 r.db('eos').tableCreate('balances');
+
+r.dbCreate('ducat');
+r.db('ducat').tableCreate('exchanges', { primaryKey: 'tx' });
 ```
