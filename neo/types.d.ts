@@ -42,8 +42,8 @@ export interface ITransaction {
 }
 
 export interface ISingleTransaction {
-  txid: string,
-  script: string
+	txid: string,
+	script: string
 }
 
 interface IStackItem {
@@ -56,5 +56,11 @@ export interface IApplogTx {
 	vmstate: string
 	gas_consumed: string
 	stack: IStackItem[]
-	notifications: { contract: string, state: { type: string, value: IStackItem[] } }[]
+	notifications: {
+		contract: string,
+		state: {
+			type: string,
+			value: IStackItem[]
+		}
+	}[]
 }

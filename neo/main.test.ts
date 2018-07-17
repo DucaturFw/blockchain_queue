@@ -15,16 +15,24 @@ describe('NEO blockchain grabber', () => {
         { txid: '0', script: '03307830034554485a224151764273374e4472783937716a5031547a64547864436e636847616b38626a64740865786368616e67656759b6f25c66b8229875bee6131363114f2c32668d' },
       ))
       .mockResolvedValueOnce(resolveJson(
-        { txid: '1', script: '03307830034554485a224151764273374e4472783937716a5031547a64547864436e636847616b38626a64740865786368616e67656759b6f25c66b8229875bee6131363114f2c32668d' }
+        { txid: '1', script: '03307830034554485a224151764273374e4472783937716a5031547a64547864436e636847616b38626a64740865786368616e67656759b6f25c66b8229875bee6131363114f2c32668d' },
       ))
 
     const fetchApplog = jest.fn()
-      .mockResolvedValueOnce(resolveJson(
-        { txid: '0', vmstate: 'HALT, BREAK', stack: [ {"type":"Integer","value":"1"} ] }
-      ))
-      .mockResolvedValueOnce(resolveJson(
-        { txid: '1', vmstate: 'WAT', stack: [ {"type":"Integer","value":"1"} ] }
-      ))
+      .mockResolvedValueOnce(resolveJson({
+        tx: {
+          stack: [ { type: 'Integer', value: '1' } ],
+          txid: '0',
+          vmstate: 'HALT, BREAK',
+        },
+      }))
+      .mockResolvedValueOnce(resolveJson({
+        tx: {
+          stack: [ { type: 'Integer', value: '1' } ],
+          txid: '1',
+          vmstate: 'WAT',
+        },
+      }))
 
     const len = await iteratePage('', fetchRpc, fetchApplog, insertIntoDb)(0)
 
@@ -35,16 +43,16 @@ describe('NEO blockchain grabber', () => {
     expect(insertIntoDb).toHaveBeenCalledWith([
       {
         id: '0',
+        log: {
+          stack: [],
+          txid: '0',
+          vmstate: 'HALT, BREAK',
+        },
         tx: {
           txid: '0',
           script: '03307830034554485a224151764273374e4472783937716a5031547a64547864436e636847616b38626a64740865786368616e67656759b6f25c66b8229875bee6131363114f2c32668d'
         },
-        log: {
-          txid: '0',
-          stack: [],
-          vmstate: 'HALT, BREAK',
-        }
-      }
+      },
     ])
   })
 })

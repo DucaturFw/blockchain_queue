@@ -1,4 +1,3 @@
-/// <reference path="./types.d.ts" />
 import nodeFetch from 'node-fetch'
 import { propOr, zip } from 'ramda'
 import r, { Connection, WriteResult } from 'rethinkdb'
@@ -39,7 +38,7 @@ export const iteratePage: IteratePage = (address, fetchRpc, fetchApplog, insert)
     .map((v) => v.txid)
 
   const transactionsReqs: Array<Promise<ISingleTransaction>> = ids.map((id) => fetchRpc(`get_transaction/${id}`))
-  const logsReqs: Array<Promise<IApplogTx>> = ids.map((id) => fetchApplog(`tx/${id}`))
+  const logsReqs: Array<Promise<{ tx: IApplogTx | null }>> = ids.map((id) => fetchApplog(`tx/${id}`))
 
   const [ transaction, logs ] = await Promise.all([
     Promise.all(transactionsReqs),
@@ -47,9 +46,9 @@ export const iteratePage: IteratePage = (address, fetchRpc, fetchApplog, insert)
   ])
 
   const rows = zip(transaction, logs)
-    .map((v) => ({ tx: v[0], log: v[1] }))
+    .map((v) => ({ tx: v[0], log: v[1].tx }))
     .filter(({ tx }) => propOr(false, 'method', parseExchangeCall(tx.script)) === 'exchange')
-    .filter(({ log }) => checkTxSuccess(log))
+    .filter(({ log }) => log && checkTxSuccess(log))
     .map(({ tx, log }) => ({ id: tx.txid, tx, log }))
 
   await insert(rows)
