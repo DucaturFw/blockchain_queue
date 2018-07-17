@@ -3,6 +3,7 @@ import nodeFetch from 'node-fetch'
 import { propOr, zip } from 'ramda'
 import r, { Connection, WriteResult } from 'rethinkdb'
 
+import { IApplogTx, ISingleTransaction, ITransaction } from './types'
 import { checkTxSuccess, parseExchangeCall } from './vm'
 
 type DB = typeof r
@@ -11,8 +12,8 @@ type Fetch = typeof nodeFetch
 const delay = (time: number) =>
   new Promise(resolve => setTimeout(resolve, time))
 
-const prepareFetchJson = (fetch: Fetch, rpcEndpoint: string) => (path: string) =>
-  fetch(`${rpcEndpoint}${path}`).then(res => res.json())
+const prepareFetchJson = (fetch: Fetch, endpoint: string) => (path: string) =>
+  fetch(`${endpoint}${path}`).then(res => res.json())
 
 const insertIntoDb = (db: DB, conn: Connection) => async (rows: Array<{}>): Promise<any> => {
   const res = await db.table('transactions').insert(rows).run(conn)
@@ -24,20 +25,21 @@ const getPageBasedOnCount = (db: DB, conn: Connection) =>
 
 type IteratePage = (
   address: string,
-  fetchJson: (path: string) => Promise<any>,
+  fetchRpc: (path: string) => Promise<any>,
+  fetchApplog: (path: string) => Promise<any>,
   insert: (rows: object[]) => Promise<WriteResult<any, any>> ) =>
     (page: number) => Promise<number>
 
-export const iteratePage: IteratePage = (address, fetchJson, insert) => async (page) => {
-  const txs: ITransaction[] = await fetchJson(`get_last_transactions_by_address/${address}/${page}`)
+export const iteratePage: IteratePage = (address, fetchRpc, fetchApplog, insert) => async (page) => {
+  const txs: ITransaction[] = await fetchRpc(`get_last_transactions_by_address/${address}/${page}`)
   if (!Array.isArray(txs)) throw Error(`Fetched tx\'s is not an array: ${txs}`)
 
   const ids = txs
     .filter(v => v.type === 'InvocationTransaction')
     .map((v) => v.txid)
 
-  const transactionsReqs: Array<Promise<ISingleTransaction>> = ids.map((id) => fetchJson(`get_transaction/${id}`))
-  const logsReqs: Array<Promise<IApplogTx>> = ids.map((id) => fetchJson(`tx/${id}`))
+  const transactionsReqs: Array<Promise<ISingleTransaction>> = ids.map((id) => fetchRpc(`get_transaction/${id}`))
+  const logsReqs: Array<Promise<IApplogTx>> = ids.map((id) => fetchApplog(`tx/${id}`))
 
   const [ transaction, logs ] = await Promise.all([
     Promise.all(transactionsReqs),
@@ -56,11 +58,21 @@ export const iteratePage: IteratePage = (address, fetchJson, insert) => async (p
   return txs.length
 }
 
-export default async (db: DB, conn: Connection, fetch: Fetch, address: string, rpcEndpoint: string) => {
+type Main = (
+  db: DB,
+  conn: Connection,
+  fetch: Fetch,
+  address: string,
+  rpcEndpoint: string,
+  applogEndpoint: string,
+) => Promise<void>
+
+const main: Main = async (db, conn, fetch, address, rpcEndpoint, applogEndpoint) => {
   try {
-    const fetchJson = prepareFetchJson(fetch, rpcEndpoint)
+    const fetchRpc = prepareFetchJson(fetch, rpcEndpoint)
+    const fetchApplog = prepareFetchJson(fetch, applogEndpoint)
     const insert = insertIntoDb(db, conn)
-    const iterate = iteratePage(address, fetchJson, insert)
+    const iterate = iteratePage(address, fetchRpc, fetchApplog, insert)
     const initialPage = await getPageBasedOnCount(db, conn)
 
     const loop = async (page: number) => {
@@ -78,3 +90,5 @@ export default async (db: DB, conn: Connection, fetch: Fetch, address: string, r
     console.log({ err })
   }
 }
+
+export default main

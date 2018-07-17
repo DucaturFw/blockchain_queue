@@ -24,7 +24,7 @@ interface ITransfer {
 	address_from: string
 }
 
-interface ITransaction {
+export interface ITransaction {
 	txid: string
 	type: string
 	time: number
@@ -41,7 +41,7 @@ interface ITransaction {
 	transfers: ITransfer[]
 }
 
-interface ISingleTransaction {
+export interface ISingleTransaction {
   txid: string,
   script: string
 }
@@ -51,7 +51,7 @@ interface IStackItem {
 	value: string
 }
 
-interface IApplogTx {
+export interface IApplogTx {
 	txid: string
 	vmstate: string
 	gas_consumed: string
