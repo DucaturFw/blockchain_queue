@@ -1,12 +1,13 @@
 {
   "extends": "tslint:recommended",
   "rules": {
+    "arrow-parens": [false],
+    "curly": [true, "ignore-same-line"],
+    "no-bitwise": [false],
+    "no-console": [false],
+    "no-var-requires": [false],
     "quotemark": [true, "single"],
     "semicolon": [true, "never"],
-    "no-console": [false],
-    "curly": [true, "ignore-same-line"],
-    "arrow-parens": [false],
-    "no-var-requires": [false],
     "ordered-imports": [
       true,
       {
